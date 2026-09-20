@@ -1,0 +1,14 @@
+/* Mobile navigation fix: keep every owner section visible, including Documents and Finance. */
+@media (max-width:850px){
+  body{padding-bottom:132px!important}
+  .side{height:124px!important;padding:7px 8px calc(7px + env(safe-area-inset-bottom))!important}
+  .side nav{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;grid-template-rows:repeat(2,1fr)!important;gap:4px!important;overflow:visible!important;width:100%!important;align-items:stretch!important}
+  .side nav button{min-width:0!important;width:100%!important;padding:7px 2px!important;font-size:10px!important;line-height:1.1!important;white-space:normal!important;text-align:center!important;display:flex!important;align-items:center!important;justify-content:center!important}
+  .side nav button:nth-child(6),.side nav button:nth-child(7),.side nav button:nth-child(8),.side nav button:nth-child(9){font-weight:600}
+  .shell main{padding-bottom:20px!important}
+  .sectionhead .actions{display:grid!important;grid-template-columns:1fr 1fr!important;gap:8px!important;width:100%!important}
+  .sectionhead .actions .btn,.sectionhead .actions .secondary{width:100%!important}
+}
+@media (max-width:390px){
+  .side nav button{font-size:9px!important;padding:6px 1px!important}
+}
