@@ -22,7 +22,7 @@
     const {error:updateError}=await sb.from('documents').update({
       payment_url:data.url||null,
       stripe_session_id:data.stripe_invoice_id||data.session_id||null,
-      status:'Sent'
+      status:data.email_sent?'Sent':'Draft'
     }).eq('id',d.id);
     if(updateError) throw updateError;
     return data;
@@ -32,7 +32,7 @@
     if(data?.email_sent){
       alert(`Invoice${data.invoice_number?' '+data.invoice_number:''} sent to ${email}.`);
     }else{
-      alert(`Invoice created in Stripe TEST MODE, but Stripe does not send customer emails in test mode. The invoice is saved in KP HQ. Switch the Supabase STRIPE_SECRET_KEY to a live Stripe key before sending real client invoices.`);
+      alert(`Invoice created in Stripe TEST MODE, but Stripe does not send customer emails in test mode. The invoice is saved in KP HQ as Draft. Switch the Supabase STRIPE_SECRET_KEY to a live Stripe key before sending real client invoices.`);
     }
   }
 
@@ -91,17 +91,35 @@
         const r=await sb.functions.invoke('create-stripe-invoice',{body:{action:'resend',stripe_invoice_id:d.stripe_session_id}});
         if(r.error||r.data?.error) throw new Error(r.data?.error||r.error?.message||'Could not resend the Stripe invoice.');
         result=r.data;
+        await sb.from('documents').update({
+          payment_url:result.url||d.payment_url||null,
+          stripe_session_id:result.stripe_invoice_id||d.stripe_session_id,
+          status:result.email_sent?'Sent':'Draft'
+        }).eq('id',id);
       }else{
         result=await createAndSendStripeInvoice(d);
-      }
-      if(result?.url&&result.url!==d.payment_url){
-        await sb.from('documents').update({payment_url:result.url,stripe_session_id:result.stripe_invoice_id||result.session_id,status:'Sent'}).eq('id',id);
       }
       await loadAll();
       page();
       confirmation(result,d.customer_email);
     }catch(e){
       alert(`Invoice was not sent. ${e?.message||e}`);
+    }
+  };
+
+  // The payment-link action also creates/sends a true Stripe invoice when one does not exist yet.
+  window.stripePay=async function(id){
+    const d=D.documents.find(x=>x.id===id);
+    if(!d) return;
+    if(d.payment_url) return window.open(d.payment_url,'_blank');
+    if(!d.customer_email) return alert('Add a client email before creating the payment invoice.');
+    try{
+      const result=await createAndSendStripeInvoice(d);
+      await loadAll();
+      page();
+      confirmation(result,d.customer_email);
+    }catch(e){
+      alert(`Stripe invoice could not be created. ${e?.message||e}`);
     }
   };
 
