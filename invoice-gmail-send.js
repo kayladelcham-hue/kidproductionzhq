@@ -29,6 +29,18 @@
   function textEmail(d){return `Your KidProductionz invoice is ready.\n\n${d.title||'Invoice'}\nAmount: ${money(d.amount)}\n\n${d.body||''}\n\nPay securely: ${d.payment_url||''}\n\nThank you for trusting KidProductionz.`}
   function subjectFor(d){return `Invoice from KidProductionz — ${d.title||'Services'}`}
 
+  async function functionErrorMessage(error,fallback){
+    if(!error)return fallback;
+    try{
+      const ctx=error.context;
+      if(ctx&&typeof ctx.clone==='function'){
+        const body=await ctx.clone().json();
+        if(body?.error)return body.error+(body?.google_reason?` (${body.google_reason})`:'');
+      }
+    }catch(_e){}
+    return error.message||fallback;
+  }
+
   function updatePreviewGoogleState(){
     const root=document.getElementById('invoiceEmailPreview');if(!root)return;
     const lines=root.querySelectorAll('.emailmeta .line');
@@ -65,7 +77,7 @@
     if(button){button.disabled=true;button.textContent='Sending from Gmail…'}
     try{
       const {data,error}=await sb.functions.invoke('google-gmail',{body:{action:'send',to:d.customer_email,subject:subjectFor(d),html:htmlEmail(d),text:textEmail(d)}});
-      if(error||data?.error)throw new Error(data?.error||error?.message||'Gmail could not send the invoice.');
+      if(error||data?.error){const msg=data?.error||await functionErrorMessage(error,'Gmail could not send the invoice.');throw new Error(msg)}
       const {error:updateError}=await sb.from('documents').update({status:'Sent'}).eq('id',id);if(updateError)throw updateError;
       await loadAll();closeEmailPreview();page();alert(`Invoice sent to ${d.customer_email} from ${data.from||KPGoogle.email}.`);
     }catch(e){alert(`Invoice was not sent. ${e?.message||e}`);if(button){button.disabled=false;button.textContent='Send Invoice'}}
