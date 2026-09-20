@@ -1,0 +1,5 @@
+// Adds explicit Preview and Send actions to invoice rows without changing core data flow.
+(function(){
+ function enhance(){document.querySelectorAll("button[onclick^=\"previewDocument('\"]").forEach(preview=>{const m=preview.getAttribute('onclick')?.match(/previewDocument\('([^']+)'\)/);if(!m)return;const id=m[1],d=D.documents.find(x=>x.id===id);if(!d||d.type!=='Invoice'||preview.dataset.invoiceEnhanced)return;preview.dataset.invoiceEnhanced='1';preview.textContent='Preview';const box=preview.parentElement;if(!box)return;if(!box.querySelector(`[data-send-invoice="${id}"]`)){const send=document.createElement('button');send.className='btn mini';send.textContent='Send';send.dataset.sendInvoice=id;send.onclick=e=>{e.stopPropagation();sendInvoice(id)};box.appendChild(send)}})}
+ const obs=new MutationObserver(()=>enhance());obs.observe(document.documentElement,{childList:true,subtree:true});document.addEventListener('DOMContentLoaded',enhance);setTimeout(enhance,500);
+})();
