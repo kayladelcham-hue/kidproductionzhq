@@ -1,0 +1,28 @@
+// Universal click-to-open / edit layer for KP HQ.
+(function(){
+ const opt=(id,label,items,value)=>`<label>${label}<select id="${id}">${items.map(([v,n])=>`<option value="${v}" ${String(v)===String(value||'')?'selected':''}>${esc(n)}</option>`).join('')}</select></label>`;
+ const inp=(id,label,value='',type='text')=>`<label>${label}<input id="${id}" type="${type}" value="${esc(value??'')}"></label>`;
+ const area=(id,label,value='')=>`<label>${label}<textarea id="${id}">${esc(value??'')}</textarea></label>`;
+ function show(title,body,save){document.body.insertAdjacentHTML('beforeend',`<div id="modalbg" class="modalbg"><div class="modal"><div class="modalhead"><h2>${esc(title)}</h2><button class="x" onclick="closeM()">×</button></div>${body}<button class="btn" onclick="${save}">Save changes</button></div></div>`)}
+ window.updateRecord=async function(table,id,row,after){let{error}=await sb.from(table).update(row).eq('id',id);if(error)return alert(error.message);closeM();await loadAll();if(after&&after!=='page')openClient(after);else page()}
+ window.editClient=function(id){let x=D.clients.find(x=>x.id===id);show('Edit client',inp('e1','Client name',x.name)+opt('e2','Status',[['Lead','Lead'],['Consultation','Consultation'],['Proposal','Proposal'],['Booked','Booked'],['Active','Active'],['Complete','Complete']],x.status)+inp('e3','Base value',x.base_value,'number')+inp('e4','Next action',x.next_action),`updateRecord('clients','${id}',{name:val('e1'),status:val('e2'),base_value:+val('e3')||0,next_action:val('e4')},'${id}')`)};
+ window.editProject=function(id,clientId){let x=D.projects.find(x=>x.id===id);show('Edit project',opt('e0','Client',D.clients.map(c=>[c.id,c.name]),x.client_id)+inp('e1','Project name',x.name)+inp('e2','Value',x.value,'number')+opt('e3','Status',[['Planning','Planning'],['Proposal','Proposal'],['Booked','Booked'],['Active','Active'],['Complete','Complete'],['Cancelled','Cancelled']],x.status)+inp('e4','Next action',x.next_action)+inp('e5','Start date',x.start_date,'date')+inp('e6','End date',x.end_date,'date'),`updateRecord('projects','${id}',{client_id:val('e0'),name:val('e1'),value:+val('e2')||0,status:val('e3'),next_action:val('e4'),start_date:val('e5')||null,end_date:val('e6')||null},'${clientId||''}'||'page')`)};
+ window.editDocument=function(id,clientId){let x=D.documents.find(x=>x.id===id);show(`Edit ${x.type}`,inp('e1','Title',x.title)+inp('e2','Amount',x.amount,'number')+inp('e3','Client email',x.customer_email,'email')+opt('e4','Status',[['Draft','Draft'],['Sent','Sent'],['Signed','Signed'],['Paid','Paid'],['Complete','Complete'],['Void','Void']],x.status)+area('e5','Scope / details',x.body)+area('e6','Terms',x.terms),`updateRecord('documents','${id}',{title:val('e1'),amount:+val('e2')||0,customer_email:val('e3'),status:val('e4'),body:val('e5'),terms:val('e6')},'${clientId||''}'||'page')`)};
+ window.editEvent=function(id,clientId){let x=D.events.find(x=>x.id===id);show('Edit calendar event',inp('e1','Title',x.title)+inp('e2','Date',x.event_date,'date')+inp('e3','Time',x.event_time,'time')+inp('e4','Type',x.type),`updateRecord('calendar_events','${id}',{title:val('e1'),event_date:val('e2')||null,event_time:val('e3')||null,type:val('e4')},'${clientId||''}'||'page')`)};
+ window.editTask=function(id){let x=D.tasks.find(x=>x.id===id);show('Edit task',inp('e1','Task',x.title)+inp('e2','Due date',x.due_date,'date'),`updateRecord('tasks','${id}',{title:val('e1'),due_date:val('e2')||null},'page')`)};
+
+ // Client profile becomes a fully interactive record hub.
+ const oldOpen=window.openClient;
+ window.openClient=function(id){oldOpen(id);let c=D.clients.find(x=>x.id===id),ps=D.projects.filter(p=>p.client_id===id),pids=ps.map(p=>p.id),docs=D.documents.filter(d=>d.client_id===id||(d.project_id&&pids.includes(d.project_id))),prods=D.productions.filter(p=>p.project_id&&pids.includes(p.project_id)),evs=D.events.filter(e=>e.project_id&&pids.includes(e.project_id));
+  const hero=document.querySelector('.clienthero');if(hero){hero.classList.add('clickable');hero.onclick=()=>editClient(id);hero.title='Edit client';}
+  document.querySelectorAll('#view .sectionhead h2').forEach(h=>h.closest('.sectionhead')?.classList.add('profileheading'));
+  const heads=[...document.querySelectorAll('#view .sectionhead h2')];
+  function wire(title,data,fn){let h=heads.find(x=>x.textContent===title);let list=h?.closest('.sectionhead')?.nextElementSibling;if(!list)return;[...list.children].forEach((r,i)=>{if(!data[i])return;r.classList.add('clickrow');r.onclick=e=>{if(e.target.closest('button,a'))return;fn(data[i])};});}
+  wire('Projects',ps,x=>editProject(x.id,id));wire('Contracts',docs.filter(d=>d.type==='Contract'),x=>editDocument(x.id,id));wire('Invoices',docs.filter(d=>d.type==='Invoice'),x=>editDocument(x.id,id));wire('Productions',prods,x=>editProduction(x.id));wire('Calendar',evs,x=>editEvent(x.id,id));
+  docs.forEach(d=>{document.querySelectorAll(`button[onclick="previewDocument('${d.id}')"]`).forEach(b=>{let edit=document.createElement('button');edit.className='secondary mini';edit.textContent='Edit';edit.onclick=()=>editDocument(d.id,id);b.parentNode.insertBefore(edit,b);});});
+ };
+
+ // Make main list rows clickable/editable where practical.
+ const oldProjects=window.projects;window.projects=function(v){oldProjects(v);D.projects.forEach((x,i)=>{let r=v.querySelectorAll('.row')[i];if(r){r.classList.add('clickrow');r.onclick=e=>{if(!e.target.closest('button,a'))editProject(x.id,x.client_id)}}})};
+ const oldCalendar=window.calendar;window.calendar=function(v){oldCalendar(v);};
+})();
