@@ -1,6 +1,7 @@
 // Route reviewed invoice delivery through connected Google Workspace Gmail.
 (function(){
   const oldPreview=window.previewInvoiceEmail;
+  let stripeTestMode=false;
 
   function htmlEmail(d){
     const title=esc(d.title||'KidProductionz Invoice');
@@ -25,60 +26,48 @@
     </body></html>`;
   }
 
-  function textEmail(d){
-    return `Your KidProductionz invoice is ready.\n\n${d.title||'Invoice'}\nAmount: ${money(d.amount)}\n\n${d.body||''}\n\nPay securely: ${d.payment_url||''}\n\nThank you for trusting KidProductionz.`;
-  }
-
+  function textEmail(d){return `Your KidProductionz invoice is ready.\n\n${d.title||'Invoice'}\nAmount: ${money(d.amount)}\n\n${d.body||''}\n\nPay securely: ${d.payment_url||''}\n\nThank you for trusting KidProductionz.`}
   function subjectFor(d){return `Invoice from KidProductionz — ${d.title||'Services'}`}
 
   function updatePreviewGoogleState(){
     const root=document.getElementById('invoiceEmailPreview');if(!root)return;
     const lines=root.querySelectorAll('.emailmeta .line');
-    if(lines[0]){
-      const v=lines[0].querySelector('.v');
-      if(v) v.textContent=KPGoogle?.connected?`KidProductionz <${KPGoogle.email}>`:'Gmail not connected';
-    }
-    if(lines[2]){
-      const v=lines[2].querySelector('.v');
-      if(v) v.textContent=KPGoogle?.connected?(KPGoogle.email||'Connected Gmail'):'—';
-    }
+    if(lines[0]){const v=lines[0].querySelector('.v');if(v)v.textContent=KPGoogle?.connected?`KidProductionz <${KPGoogle.email}>`:'Gmail not connected'}
+    if(lines[2]){const v=lines[2].querySelector('.v');if(v)v.textContent=KPGoogle?.connected?(KPGoogle.email||'Connected Gmail'):'—'}
+
     const notice=root.querySelector('.previewnotice');
+    stripeTestMode=!!(notice&&notice.classList.contains('test')&&/TEST MODE/i.test(notice.textContent||''));
     if(notice){
-      notice.classList.remove('test');
-      if(KPGoogle?.connected){
+      if(stripeTestMode){
+        notice.classList.add('test');
+        notice.innerHTML=`Stripe is still in TEST MODE, so this invoice is not safe to send to a real client yet. ${KPGoogle?.connected?`Gmail is connected as <b>${esc(KPGoogle.email)}</b>, but sending stays disabled until Stripe is live.`:'Gmail also needs to be connected in Resources → Google Workspace.'}`;
+      }else if(KPGoogle?.connected){
+        notice.classList.remove('test');
         notice.textContent=`Ready to send from ${KPGoogle.email}. Stripe will host the secure payment page; Gmail will deliver this branded email.`;
       }else{
         notice.classList.add('test');
         notice.innerHTML=`Gmail is not connected yet. Connect Google Workspace before sending this invoice. <button class="secondary mini" style="margin-left:8px" onclick="closeEmailPreview();go('Resources')">Connect Gmail</button>`;
       }
     }
-    root.querySelectorAll('.sendnow,.reviewfooter .btn').forEach(b=>{b.disabled=!KPGoogle?.connected;b.title=KPGoogle?.connected?'Send from Gmail':'Connect Gmail first'});
-    const foot=root.querySelector('.mailfoot');
-    if(foot) foot.textContent='This is the email your client will receive from your connected KidProductionz Gmail. The payment button opens the secure Stripe invoice.';
+    const canSend=!!KPGoogle?.connected&&!stripeTestMode;
+    root.querySelectorAll('.sendnow,.reviewfooter .btn').forEach(b=>{b.disabled=!canSend;b.title=stripeTestMode?'Switch Stripe to live mode first':(KPGoogle?.connected?'Send from Gmail':'Connect Gmail first')});
+    const foot=root.querySelector('.mailfoot');if(foot)foot.textContent='This is the email your client will receive from your connected KidProductionz Gmail. The payment button opens the secure Stripe invoice.';
   }
 
-  window.previewInvoiceEmail=async function(id){
-    await oldPreview(id);
-    if(window.refreshGoogleIntegration) await refreshGoogleIntegration(false);
-    updatePreviewGoogleState();
-  };
+  window.previewInvoiceEmail=async function(id){await oldPreview(id);if(window.refreshGoogleIntegration)await refreshGoogleIntegration(false);updatePreviewGoogleState()};
 
   window.confirmSendInvoice=async function(id,button){
     const d=D.documents.find(x=>x.id===id);if(!d)return;
-    if(window.refreshGoogleIntegration) await refreshGoogleIntegration(false);
+    if(window.refreshGoogleIntegration)await refreshGoogleIntegration(false);
+    if(stripeTestMode){alert('Stripe is still in TEST MODE. Switch to a live Stripe key before sending this invoice to a real client.');return;}
     if(!KPGoogle?.connected){alert('Connect Gmail in Resources → Google Workspace before sending invoices.');return;}
     if(!d.payment_url){alert('The Stripe payment page is not ready yet. Close this preview and reopen it.');return;}
     if(button){button.disabled=true;button.textContent='Sending from Gmail…'}
     try{
       const {data,error}=await sb.functions.invoke('google-gmail',{body:{action:'send',to:d.customer_email,subject:subjectFor(d),html:htmlEmail(d),text:textEmail(d)}});
-      if(error||data?.error) throw new Error(data?.error||error?.message||'Gmail could not send the invoice.');
-      const {error:updateError}=await sb.from('documents').update({status:'Sent'}).eq('id',id);
-      if(updateError) throw updateError;
-      await loadAll();closeEmailPreview();page();
-      alert(`Invoice sent to ${d.customer_email} from ${data.from||KPGoogle.email}.`);
-    }catch(e){
-      alert(`Invoice was not sent. ${e?.message||e}`);
-      if(button){button.disabled=false;button.textContent='Send Invoice'}
-    }
+      if(error||data?.error)throw new Error(data?.error||error?.message||'Gmail could not send the invoice.');
+      const {error:updateError}=await sb.from('documents').update({status:'Sent'}).eq('id',id);if(updateError)throw updateError;
+      await loadAll();closeEmailPreview();page();alert(`Invoice sent to ${d.customer_email} from ${data.from||KPGoogle.email}.`);
+    }catch(e){alert(`Invoice was not sent. ${e?.message||e}`);if(button){button.disabled=false;button.textContent='Send Invoice'}}
   };
 })();
