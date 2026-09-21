@@ -17,6 +17,14 @@
   inp('e4','Next action',x.next_action)+
   area('e10','Notes',x.notes),
   `updateRecord('clients','${id}',{name:val('e1'),business_name:val('e5'),email:val('e6'),phone:val('e7'),website:val('e8'),instagram:val('e9'),status:val('e2'),base_value:+val('e3')||0,next_action:val('e4'),notes:val('e10')},'${id}')`)};
+ window.editClientContact=function(id){let x=D.clients.find(x=>x.id===id);if(!x)return;show('Edit contact details',
+  inp('ce1','Business name',x.business_name)+
+  inp('ce2','Email',x.email,'email')+
+  inp('ce3','Phone',x.phone,'tel')+
+  inp('ce4','Website',x.website,'url')+
+  inp('ce5','Instagram',x.instagram)+
+  area('ce6','Contact notes',x.notes),
+  `updateRecord('clients','${id}',{business_name:val('ce1'),email:val('ce2'),phone:val('ce3'),website:val('ce4'),instagram:val('ce5'),notes:val('ce6')},'${id}')`)};
  window.editProject=function(id,clientId){let x=D.projects.find(x=>x.id===id);show('Edit project',opt('e0','Client',D.clients.map(c=>[c.id,c.name]),x.client_id)+inp('e1','Project name',x.name)+inp('e2','Value',x.value,'number')+opt('e3','Status',[['Planning','Planning'],['Proposal','Proposal'],['Booked','Booked'],['Active','Active'],['Complete','Complete'],['Cancelled','Cancelled']],x.status)+inp('e4','Next action',x.next_action)+inp('e5','Start date',x.start_date,'date')+inp('e6','End date',x.end_date,'date'),`updateRecord('projects','${id}',{client_id:val('e0'),name:val('e1'),value:+val('e2')||0,status:val('e3'),next_action:val('e4'),start_date:val('e5')||null,end_date:val('e6')||null},'${clientId||''}'||'page')`)};
  window.editDocument=function(id,clientId){let x=D.documents.find(x=>x.id===id);show(`Edit ${x.type}`,inp('e1','Title',x.title)+inp('e2','Amount',x.amount,'number')+inp('e3','Client email',x.customer_email,'email')+opt('e4','Status',[['Draft','Draft'],['Sent','Sent'],['Signed','Signed'],['Paid','Paid'],['Complete','Complete'],['Void','Void']],x.status)+area('e5','Scope / details',x.body)+area('e6','Terms',x.terms),`updateRecord('documents','${id}',{title:val('e1'),amount:+val('e2')||0,customer_email:val('e3'),status:val('e4'),body:val('e5'),terms:val('e6')},'${clientId||''}'||'page')`)};
  window.editEvent=function(id,clientId){let x=D.events.find(x=>x.id===id);show('Edit calendar event',inp('e1','Title',x.title)+inp('e2','Date',x.event_date,'date')+inp('e3','Time',x.event_time,'time')+inp('e4','Type',x.type),`updateRecord('calendar_events','${id}',{title:val('e1'),event_date:val('e2')||null,event_time:val('e3')||null,type:val('e4')},'${clientId||''}'||'page')`)};
@@ -34,8 +42,9 @@
    }
    const tag=hero.querySelector('.tag');
    const right=document.createElement('div');right.className='clientheroactions';
+   const contact=document.createElement('button');contact.className='secondary mini clienteditbtn';contact.textContent='Edit contact';contact.type='button';contact.onclick=e=>{e.stopPropagation();editClientContact(id)};
    const edit=document.createElement('button');edit.className='secondary mini clienteditbtn';edit.textContent='Edit client';edit.type='button';edit.onclick=e=>{e.stopPropagation();editClient(id)};
-   right.appendChild(edit);
+   right.appendChild(contact);right.appendChild(edit);
    if(tag){tag.replaceWith(right);right.appendChild(tag);}else hero.appendChild(right);
   }
   document.querySelectorAll('#view .sectionhead h2').forEach(h=>h.closest('.sectionhead')?.classList.add('profileheading'));
