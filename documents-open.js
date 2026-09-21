@@ -1,0 +1,6 @@
+// Documents page interaction: open existing KP HQ branded document preview.
+(function(){
+  window.documents=function(v){
+    v.innerHTML=`<div class="sectionhead"><div><h2>Documents & invoicing</h2><p>Create contracts and Stripe-ready invoices.</p></div><div class="actions"><button class="secondary" onclick="modal('document','Contract')">+ Contract</button><button class="btn" onclick="modal('document','Invoice')">+ Invoice</button></div></div>${rows(D.documents,d=>`<div class="docrow-main" role="button" tabindex="0" onclick="previewDocument('${d.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();previewDocument('${d.id}')}" style="cursor:pointer;min-width:0;flex:1"><span>${esc(d.type)}</span><strong>${esc(d.title)}</strong><span>${esc(d.status)}${d.customer_email?' • '+esc(d.customer_email):''}</span></div><div class="rowactions"><strong>${money(d.amount)}</strong><button class="secondary mini" onclick="event.stopPropagation();previewDocument('${d.id}')">Open document</button>${d.type==='Invoice'?`<button class="pay mini" onclick="event.stopPropagation();stripePay('${d.id}')">${d.payment_url?'Open payment':'Create payment link'}</button>`:''}</div>`)}`;
+  };
+})();
