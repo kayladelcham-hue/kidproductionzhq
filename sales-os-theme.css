@@ -1,0 +1,90 @@
+/* KP HQ visual parity layer — mirrors the KP Sales OS Ocean / dark presentation system. */
+:root{
+  --kp-theme-a:#8fd3ff;
+  --kp-theme-b:#4776ff;
+  --kp-theme-soft:color-mix(in srgb,#4776ff 12%,transparent);
+  --kp-theme-glow:color-mix(in srgb,#4776ff 20%,transparent);
+  --xp-bg:#0d121c;
+  --xp-surface:#161d29;
+  --xp-soft:#1e2735;
+  --xp-text:#edf2fa;
+  --xp-muted:#a4afc1;
+  --xp-border:rgba(255,255,255,.09);
+  --bg:var(--xp-bg);
+  --panel:var(--xp-surface);
+  --ink:var(--xp-text);
+  --muted:var(--xp-muted);
+  --line:var(--xp-border);
+  --soft:var(--xp-soft);
+  --dark:#4776ff;
+  --green:rgba(121,242,192,.12);
+  --danger:#ff9a94;
+  --dangerbg:rgba(180,35,24,.14);
+  color-scheme:dark;
+}
+html{background:var(--xp-bg)!important}
+body{background:var(--xp-bg)!important;color:var(--xp-text)!important;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important}
+.shell{background:radial-gradient(ellipse at 100% 0,color-mix(in srgb,var(--kp-theme-b) 10%,transparent),transparent 55%),var(--xp-bg)!important}
+.shell main{background:transparent!important}
+.shell :is(h1,h2,h3,h4){color:var(--xp-text)!important;letter-spacing:-.035em!important;line-height:1.2!important}
+.shell header{border-color:var(--xp-border)!important;margin-bottom:20px!important}
+.shell header h1,.portal header h1{font-size:28px!important;font-weight:750!important}
+.eyebrow{color:var(--xp-muted)!important;font-size:9px!important;letter-spacing:.12em!important;font-weight:750!important}
+.muted,.row span,.sectionhead p,.integration p,.clienthero p,.clientcontact{color:var(--xp-muted)!important}
+.side{background:var(--xp-surface)!important;border-color:var(--xp-border)!important;color:var(--xp-text)!important}
+.brandmark{color:var(--xp-text)!important}
+.brandmark span{color:var(--xp-muted)!important}
+.side nav button,.textbtn{color:var(--xp-muted)!important;border:0!important;background:transparent!important;border-radius:12px!important;font-weight:650!important}
+.side nav button:hover,.side nav button.active{background:var(--kp-theme-soft)!important;color:var(--kp-theme-a)!important}
+.card,.row,.clienthero,.calendar,.integration,.empty{background:var(--xp-surface)!important;border:1px solid var(--xp-border)!important;color:var(--xp-text)!important;box-shadow:none!important}
+.card,.clienthero{border-radius:20px!important}
+.row{border-radius:14px!important}
+.metric strong{color:var(--xp-text)!important;font-weight:750!important;letter-spacing:-.05em!important}
+.metric span{color:var(--xp-muted)!important}
+.btn{background:linear-gradient(120deg,var(--kp-theme-a),var(--kp-theme-b))!important;color:#101a2c!important;border:0!important;font-weight:750!important}
+.secondary,.linkbtn{background:var(--xp-soft)!important;color:var(--xp-text)!important;border:1px solid var(--xp-border)!important;font-weight:650!important}
+.pay{background:rgba(121,242,192,.12)!important;color:#8ff0c7!important;border:1px solid rgba(121,242,192,.2)!important}
+.danger{background:rgba(180,35,24,.14)!important;color:#ffaaa4!important;border:1px solid rgba(255,154,148,.18)!important}
+.btn,.secondary,.pay,.linkbtn,.danger{border-radius:13px!important;box-shadow:none!important}
+.btn:hover,.secondary:hover,.pay:hover,.linkbtn:hover,.danger:hover{transform:translateY(-1px)}
+input,select,textarea{background:var(--xp-soft)!important;color:var(--xp-text)!important;border:1px solid var(--xp-border)!important;border-radius:12px!important;box-shadow:none!important}
+input::placeholder,textarea::placeholder{color:var(--xp-muted)!important;opacity:.75}
+label{color:var(--xp-muted)!important}
+.modalbg{background:rgba(5,10,20,.62)!important;backdrop-filter:blur(5px)}
+.modal{background:var(--xp-surface)!important;color:var(--xp-text)!important;border:1px solid var(--xp-border)!important;border-radius:20px!important;box-shadow:0 30px 90px rgba(0,0,0,.35)!important}
+.x{background:var(--xp-soft)!important;color:var(--xp-text)!important;border:1px solid var(--xp-border)!important}
+.tag{background:var(--kp-theme-soft)!important;color:var(--kp-theme-a)!important;border:1px solid color-mix(in srgb,var(--kp-theme-a) 18%,transparent)!important}
+.resource{background:var(--xp-surface)!important;color:var(--xp-text)!important;border-color:var(--xp-border)!important}
+.resource b,.drivefolderlink{color:var(--kp-theme-a)!important}
+.week{background:var(--xp-soft)!important;border-color:var(--xp-border)!important}
+.week b{color:var(--xp-muted)!important}
+.day{border-color:var(--xp-border)!important;background:var(--xp-surface)!important}
+.day.blank{background:color-mix(in srgb,var(--xp-soft) 72%,transparent)!important}
+.calevent{background:var(--xp-soft)!important;color:var(--xp-text)!important}
+.calevent.production{background:var(--kp-theme-soft)!important;color:var(--kp-theme-a)!important}
+.clientheroactions .tag{white-space:nowrap}
+.clientdrivecard{background:linear-gradient(145deg,color-mix(in srgb,var(--kp-theme-b) 8%,var(--xp-surface)),var(--xp-surface))!important}
+.clientdrivecard .sectionhead h2{font-size:20px!important}
+.clientdrivecard .secondary{min-width:140px}
+.profilearrow{color:var(--xp-muted)!important}
+.clientopen{color:var(--xp-text)!important}
+.auth{background:var(--xp-surface)!important}
+.login{background:radial-gradient(ellipse at 100% 0,color-mix(in srgb,var(--kp-theme-b) 12%,transparent),transparent 55%),var(--xp-bg)!important}
+.portal{color:var(--xp-text)!important}
+.portal header{border-color:var(--xp-border)!important}
+
+@media(max-width:850px){
+  .shell header{background:rgba(13,18,28,.94)!important;backdrop-filter:blur(14px)!important}
+  .side{background:rgba(22,29,41,.97)!important;border-top:1px solid var(--xp-border)!important;backdrop-filter:blur(14px)!important}
+  .side nav button{color:var(--xp-muted)!important;background:transparent!important}
+  .side nav button.active{background:var(--kp-theme-soft)!important;color:var(--kp-theme-a)!important}
+  .modal{background:var(--xp-surface)!important}
+  .clienthero,.clientdrivecard{border-radius:18px!important}
+}
+
+@media(max-width:480px){
+  .card,.clienthero,.row,.integration{border-radius:16px!important}
+  .sectionhead .actions,.profileactions{gap:8px!important}
+  .clientdrivecard .sectionhead{gap:14px!important}
+  .clientdrivecard .secondary{width:100%!important;min-width:0!important}
+}
