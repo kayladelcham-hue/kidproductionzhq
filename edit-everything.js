@@ -32,8 +32,11 @@
     const p=hero.querySelector('p');
     if(p)p.insertAdjacentHTML('afterend',`<div class="clientcontact">${details.map(v=>`<span>${esc(v)}</span>`).join('')}</div>`);
    }
-   const edit=document.createElement('button');edit.className='secondary mini';edit.textContent='Edit client';edit.onclick=e=>{e.stopPropagation();editClient(id)};
-   const actionHost=hero.querySelector('.tag');if(actionHost)actionHost.insertAdjacentElement('beforebegin',edit);else hero.appendChild(edit);
+   const tag=hero.querySelector('.tag');
+   const right=document.createElement('div');right.className='clientheroactions';
+   const edit=document.createElement('button');edit.className='secondary mini clienteditbtn';edit.textContent='Edit client';edit.type='button';edit.onclick=e=>{e.stopPropagation();editClient(id)};
+   right.appendChild(edit);
+   if(tag){tag.replaceWith(right);right.appendChild(tag);}else hero.appendChild(right);
   }
   document.querySelectorAll('#view .sectionhead h2').forEach(h=>h.closest('.sectionhead')?.classList.add('profileheading'));
   const heads=[...document.querySelectorAll('#view .sectionhead h2')];
