@@ -56,11 +56,20 @@
         const b=document.createElement('button');b.className='secondary';b.type='button';b.dataset.driveClient=id;b.textContent='Create Drive folder';b.onclick=()=>createClientDriveFolder(id);host.prepend(b);
       }
     }
+
     if(c.drive_folder_url){
       const hero=document.querySelector('.clienthero');
       const info=hero?.querySelector('.clientcontact');
       if(info&&!info.querySelector('.drivefolderlink')){
         const a=document.createElement('a');a.className='drivefolderlink';a.target='_blank';a.rel='noopener';a.href=c.drive_folder_url;a.textContent='Google Drive client folder ↗';info.appendChild(a);
+      }
+
+      if(hero&&!document.querySelector('.clientdrivecard')){
+        const card=document.createElement('div');
+        card.className='card clientdrivecard';
+        card.style.marginTop='16px';
+        card.innerHTML=`<div class="sectionhead" style="margin:0"><div><span class="eyebrow">GOOGLE DRIVE</span><h2 style="margin:4px 0 6px">Client Folder</h2><p style="margin:0">Contracts, invoices, project files, and deliverables for ${esc(c.name)}.</p></div><a class="secondary linkbtn" target="_blank" rel="noopener" href="${esc(c.drive_folder_url)}">Open folder ↗</a></div>`;
+        hero.insertAdjacentElement('afterend',card);
       }
     }
   };
