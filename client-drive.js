@@ -1,17 +1,5 @@
 // Client Google Drive folder creation + sharing.
 (function(){
-  async function functionErrorMessage(error,data){
-    if(data?.error)return data.error;
-    try{
-      const ctx=error?.context;
-      if(ctx&&typeof ctx.clone==='function'){
-        const body=await ctx.clone().json().catch(()=>null);
-        if(body?.error)return body.error;
-      }
-    }catch(_e){}
-    return error?.message||'Could not create the Drive folder.';
-  }
-
   window.createClientDriveFolder=async function(id){
     const c=D.clients.find(x=>x.id===id);if(!c)return;
     if(!c.email) return alert('Add the client email first, then create the Drive folder.');
@@ -20,9 +8,7 @@
     const {data,error}=await sb.functions.invoke('google-drive-client',{body:{client_id:id}});
     if(btn){btn.disabled=false;btn.textContent='Create Drive folder'}
     if(error||data?.error){
-      let detail=data||null;
-      if(!detail&&error?.context&&typeof error.context.clone==='function') detail=await error.context.clone().json().catch(()=>null);
-      if(detail?.needs_reconnect){
+      if(data?.needs_reconnect){
         if(confirm('KP HQ needs Google Drive permission. Reconnect Google Workspace now?')){
           const r=await sb.functions.invoke('google-oauth-start',{body:{}});
           if(r.error||r.data?.error) return alert(r.data?.error||r.error?.message||'Could not start Google reconnection.');
@@ -30,7 +16,7 @@
         }
         return;
       }
-      return alert(await functionErrorMessage(error,detail));
+      return alert(data?.error||error?.message||'Could not create the Drive folder.');
     }
     await loadAll();openClient(id);
     alert(data?.already_exists?'This client already has a Drive folder.':`Drive folder created and shared with ${data.shared_with||c.email}. Google sent the client a sharing invitation.`);
