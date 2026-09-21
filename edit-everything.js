@@ -5,7 +5,18 @@
  const area=(id,label,value='')=>`<label>${label}<textarea id="${id}">${esc(value??'')}</textarea></label>`;
  function show(title,body,save){document.body.insertAdjacentHTML('beforeend',`<div id="modalbg" class="modalbg"><div class="modal"><div class="modalhead"><h2>${esc(title)}</h2><button class="x" onclick="closeM()">×</button></div>${body}<button class="btn" onclick="${save}">Save changes</button></div></div>`)}
  window.updateRecord=async function(table,id,row,after){let{error}=await sb.from(table).update(row).eq('id',id);if(error)return alert(error.message);closeM();await loadAll();if(after&&after!=='page')openClient(after);else page()}
- window.editClient=function(id){let x=D.clients.find(x=>x.id===id);show('Edit client',inp('e1','Client name',x.name)+opt('e2','Status',[['Lead','Lead'],['Consultation','Consultation'],['Proposal','Proposal'],['Booked','Booked'],['Active','Active'],['Complete','Complete']],x.status)+inp('e3','Base value',x.base_value,'number')+inp('e4','Next action',x.next_action),`updateRecord('clients','${id}',{name:val('e1'),status:val('e2'),base_value:+val('e3')||0,next_action:val('e4')},'${id}')`)};
+ window.editClient=function(id){let x=D.clients.find(x=>x.id===id);show('Edit client',
+  inp('e1','Client name',x.name)+
+  inp('e5','Business name',x.business_name)+
+  inp('e6','Email',x.email,'email')+
+  inp('e7','Phone',x.phone,'tel')+
+  inp('e8','Website',x.website,'url')+
+  inp('e9','Instagram',x.instagram)+
+  opt('e2','Status',[['Lead','Lead'],['Consultation','Consultation'],['Proposal','Proposal'],['Booked','Booked'],['Active','Active'],['Complete','Complete']],x.status)+
+  inp('e3','Base value',x.base_value,'number')+
+  inp('e4','Next action',x.next_action)+
+  area('e10','Notes',x.notes),
+  `updateRecord('clients','${id}',{name:val('e1'),business_name:val('e5'),email:val('e6'),phone:val('e7'),website:val('e8'),instagram:val('e9'),status:val('e2'),base_value:+val('e3')||0,next_action:val('e4'),notes:val('e10')},'${id}')`)};
  window.editProject=function(id,clientId){let x=D.projects.find(x=>x.id===id);show('Edit project',opt('e0','Client',D.clients.map(c=>[c.id,c.name]),x.client_id)+inp('e1','Project name',x.name)+inp('e2','Value',x.value,'number')+opt('e3','Status',[['Planning','Planning'],['Proposal','Proposal'],['Booked','Booked'],['Active','Active'],['Complete','Complete'],['Cancelled','Cancelled']],x.status)+inp('e4','Next action',x.next_action)+inp('e5','Start date',x.start_date,'date')+inp('e6','End date',x.end_date,'date'),`updateRecord('projects','${id}',{client_id:val('e0'),name:val('e1'),value:+val('e2')||0,status:val('e3'),next_action:val('e4'),start_date:val('e5')||null,end_date:val('e6')||null},'${clientId||''}'||'page')`)};
  window.editDocument=function(id,clientId){let x=D.documents.find(x=>x.id===id);show(`Edit ${x.type}`,inp('e1','Title',x.title)+inp('e2','Amount',x.amount,'number')+inp('e3','Client email',x.customer_email,'email')+opt('e4','Status',[['Draft','Draft'],['Sent','Sent'],['Signed','Signed'],['Paid','Paid'],['Complete','Complete'],['Void','Void']],x.status)+area('e5','Scope / details',x.body)+area('e6','Terms',x.terms),`updateRecord('documents','${id}',{title:val('e1'),amount:+val('e2')||0,customer_email:val('e3'),status:val('e4'),body:val('e5'),terms:val('e6')},'${clientId||''}'||'page')`)};
  window.editEvent=function(id,clientId){let x=D.events.find(x=>x.id===id);show('Edit calendar event',inp('e1','Title',x.title)+inp('e2','Date',x.event_date,'date')+inp('e3','Time',x.event_time,'time')+inp('e4','Type',x.type),`updateRecord('calendar_events','${id}',{title:val('e1'),event_date:val('e2')||null,event_time:val('e3')||null,type:val('e4')},'${clientId||''}'||'page')`)};
@@ -14,7 +25,16 @@
  // Client profile becomes a fully interactive record hub.
  const oldOpen=window.openClient;
  window.openClient=function(id){oldOpen(id);let c=D.clients.find(x=>x.id===id),ps=D.projects.filter(p=>p.client_id===id),pids=ps.map(p=>p.id),docs=D.documents.filter(d=>d.client_id===id||(d.project_id&&pids.includes(d.project_id))),prods=D.productions.filter(p=>p.project_id&&pids.includes(p.project_id)),evs=D.events.filter(e=>e.project_id&&pids.includes(e.project_id));
-  const hero=document.querySelector('.clienthero');if(hero){hero.classList.add('clickable');hero.onclick=()=>editClient(id);hero.title='Edit client';}
+  const hero=document.querySelector('.clienthero');if(hero){
+   hero.classList.add('clickable');hero.onclick=()=>editClient(id);hero.title='Edit client';
+   const details=[c.business_name,c.email,c.phone,c.website,c.instagram].filter(Boolean);
+   if(details.length){
+    const p=hero.querySelector('p');
+    if(p)p.insertAdjacentHTML('afterend',`<div class="clientcontact">${details.map(v=>`<span>${esc(v)}</span>`).join('')}</div>`);
+   }
+   const edit=document.createElement('button');edit.className='secondary mini';edit.textContent='Edit client';edit.onclick=e=>{e.stopPropagation();editClient(id)};
+   const actionHost=hero.querySelector('.tag');if(actionHost)actionHost.insertAdjacentElement('beforebegin',edit);else hero.appendChild(edit);
+  }
   document.querySelectorAll('#view .sectionhead h2').forEach(h=>h.closest('.sectionhead')?.classList.add('profileheading'));
   const heads=[...document.querySelectorAll('#view .sectionhead h2')];
   function wire(title,data,fn){let h=heads.find(x=>x.textContent===title);let list=h?.closest('.sectionhead')?.nextElementSibling;if(!list)return;[...list.children].forEach((r,i)=>{if(!data[i])return;r.classList.add('clickrow');r.onclick=e=>{if(e.target.closest('button,a'))return;fn(data[i])};});}
