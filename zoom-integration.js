@@ -1,7 +1,8 @@
-// KP HQ Zoom integration: Server-to-Server OAuth setup + automatic consultation meetings.
+// KP HQ Zoom integration: user OAuth + automatic consultation meetings.
 (function(){
-  const zoomState={configured:false,hostEmail:null,loading:false};
+  const zoomState={configured:false,connected:false,hostEmail:null,loading:false};
   window.KPZoom=zoomState;
+  const zoomCallback='https://zgiikpkvwjeescdjhnsf.supabase.co/functions/v1/zoom-oauth-callback';
 
   async function zoomInvoke(body){
     const {data,error}=await sb.functions.invoke('zoom-meetings',{body});
@@ -22,10 +23,11 @@
     try{
       const out=await zoomInvoke({action:'status'});
       zoomState.configured=!!out.configured;
+      zoomState.connected=!!out.connected;
       zoomState.hostEmail=out.host_email||null;
     }catch(e){
       console.warn('Zoom integration status failed',e);
-      zoomState.configured=false;zoomState.hostEmail=null;
+      zoomState.configured=false;zoomState.connected=false;zoomState.hostEmail=null;
     }
     zoomState.loading=false;
     if(render&&current==='Resources')renderZoomIntegration();
@@ -33,25 +35,35 @@
   };
 
   function zoomSetupHtml(){
+    if(zoomState.connected){
+      return `<div class="card zoom-setup-card">
+        <div class="sectionhead zoom-head"><div><div class="eyebrow">ZOOM</div><h2>Consultation meetings</h2><p>KP HQ automatically creates Zoom meetings when you schedule consultations.</p></div><span class="tag">Connected</span></div>
+        <div class="integration"><div><strong>${esc(zoomState.hostEmail||'Your Zoom account')}</strong><p>The meeting link flows into KP HQ, Google Calendar, and the client confirmation email. KP HQ refreshes your Zoom authorization automatically when needed.</p></div><div class="rowactions"><button class="secondary mini" onclick="testZoomIntegration(this)">Test connection</button><button class="secondary mini" onclick="disconnectZoomIntegration()">Disconnect</button></div></div>
+      </div>`;
+    }
     if(zoomState.configured){
       return `<div class="card zoom-setup-card">
-        <div class="sectionhead zoom-head"><div><div class="eyebrow">ZOOM</div><h2>Consultation meetings</h2><p>KP HQ can automatically create a Zoom meeting whenever you schedule a consultation.</p></div><span class="tag">Connected</span></div>
-        <div class="integration"><div><strong>${esc(zoomState.hostEmail||'Zoom host')}</strong><p>New consultation meetings will be created on this Zoom account and the join link will flow into KP HQ, Google Calendar, and the client confirmation email.</p></div><div class="rowactions"><button class="secondary mini" onclick="testZoomIntegration(this)">Test connection</button><button class="secondary mini" onclick="disconnectZoomIntegration()">Disconnect</button></div></div>
+        <div class="sectionhead zoom-head"><div><div class="eyebrow">ZOOM</div><h2>Authorize Zoom</h2><p>Your OAuth app credentials are saved. Finish the one-time authorization with your Zoom account.</p></div><span class="tag">Authorization required</span></div>
+        <div class="zoom-steps">
+          <div><b>1</b><span>Make sure this exact redirect URL is allowed in your Zoom OAuth app:<br><strong style="word-break:break-all">${zoomCallback}</strong></span></div>
+          <div><b>2</b><span>Make sure the app has permission to create/manage your own meetings.</span></div>
+          <div><b>3</b><span>Click Authorize with Zoom and approve access. You only need to do this once unless you disconnect the app.</span></div>
+        </div>
+        <div class="actions"><a class="secondary linkbtn" target="_blank" rel="noopener" href="https://marketplace.zoom.us/">Open Zoom Marketplace ↗</a><button class="btn" onclick="authorizeZoom(this)">Authorize with Zoom</button></div>
+        <details style="margin-top:18px"><summary style="cursor:pointer">Update OAuth credentials</summary><div class="zoom-form" style="margin-top:14px"><label>Client ID<input id="zoomClientId" type="text" placeholder="Zoom OAuth Client ID"></label><label>Client Secret<input id="zoomClientSecret" type="password" placeholder="Zoom OAuth Client Secret"></label><button class="secondary" onclick="saveZoomCredentials(this,false)">Update credentials</button></div></details>
       </div>`;
     }
     return `<div class="card zoom-setup-card">
-      <div class="sectionhead zoom-head"><div><div class="eyebrow">ZOOM</div><h2>Connect Zoom</h2><p>Use a Zoom Server-to-Server OAuth app so KP HQ can create meetings on your own Zoom account without making you reconnect every time.</p></div><span class="tag">Setup required</span></div>
+      <div class="sectionhead zoom-head"><div><div class="eyebrow">ZOOM</div><h2>Connect Zoom</h2><p>Use a normal user OAuth app. KP HQ will ask you to authorize your Zoom account once, then it can create consultation meetings for you.</p></div><span class="tag">Setup required</span></div>
       <div class="zoom-steps">
-        <div><b>1</b><span>Open the Zoom App Marketplace and create a <strong>Server-to-Server OAuth</strong> app.</span></div>
-        <div><b>2</b><span>Add the meeting write permission: <strong>meeting:write:meeting:admin</strong> (Zoom may label this “View and manage all user meetings”), then activate the app.</span></div>
-        <div><b>3</b><span>Paste the app credentials below. Your Client Secret stays server-side and is never returned to the browser.</span></div>
+        <div><b>1</b><span>Open the Zoom App Marketplace and create a <strong>user-managed OAuth app</strong> (not Server-to-Server OAuth).</span></div>
+        <div><b>2</b><span>Add permission to create/manage your own meetings and add this exact redirect URL:<br><strong style="word-break:break-all">${zoomCallback}</strong></span></div>
+        <div><b>3</b><span>Paste the OAuth Client ID and Client Secret below. The secret is stored server-side, never in the browser.</span></div>
       </div>
       <div class="zoom-form">
-        <label>Zoom host email<input id="zoomHostEmail" type="email" placeholder="you@example.com"></label>
-        <label>Account ID<input id="zoomAccountId" type="text" placeholder="Zoom Server-to-Server Account ID"></label>
-        <label>Client ID<input id="zoomClientId" type="text" placeholder="Zoom Client ID"></label>
-        <label>Client Secret<input id="zoomClientSecret" type="password" placeholder="Zoom Client Secret"></label>
-        <div class="actions"><a class="secondary linkbtn" target="_blank" rel="noopener" href="https://marketplace.zoom.us/">Open Zoom Marketplace ↗</a><button id="saveZoomBtn" class="btn" onclick="saveZoomIntegration(this)">Connect Zoom</button></div>
+        <label>Client ID<input id="zoomClientId" type="text" placeholder="Zoom OAuth Client ID"></label>
+        <label>Client Secret<input id="zoomClientSecret" type="password" placeholder="Zoom OAuth Client Secret"></label>
+        <div class="actions"><a class="secondary linkbtn" target="_blank" rel="noopener" href="https://marketplace.zoom.us/">Open Zoom Marketplace ↗</a><button id="saveZoomBtn" class="btn" onclick="saveZoomCredentials(this,true)">Save & authorize Zoom</button></div>
       </div>
     </div>`;
   }
@@ -61,30 +73,40 @@
     host.innerHTML=zoomSetupHtml();
   };
 
-  window.saveZoomIntegration=async function(button){
-    const hostEmail=document.getElementById('zoomHostEmail')?.value?.trim();
-    const accountId=document.getElementById('zoomAccountId')?.value?.trim();
+  window.saveZoomCredentials=async function(button,authorizeAfter=true){
     const clientId=document.getElementById('zoomClientId')?.value?.trim();
     const clientSecret=document.getElementById('zoomClientSecret')?.value?.trim();
-    if(!hostEmail||!accountId||!clientId||!clientSecret)return alert('Add the Zoom host email, Account ID, Client ID, and Client Secret first.');
-    const old=button?.textContent;if(button){button.disabled=true;button.textContent='Connecting…'}
+    if(!clientId||!clientSecret)return alert('Add the Zoom OAuth Client ID and Client Secret first.');
+    const old=button?.textContent;if(button){button.disabled=true;button.textContent='Saving…'}
     try{
-      const out=await zoomInvoke({action:'save',host_email:hostEmail,account_id:accountId,client_id:clientId,client_secret:clientSecret});
-      zoomState.configured=true;zoomState.hostEmail=out.host_email||hostEmail;renderZoomIntegration();
-      alert('Zoom is connected. New consultations can now create Zoom meetings automatically.');
-    }catch(e){alert(`Zoom could not connect: ${e?.message||e}`);if(button){button.disabled=false;button.textContent=old||'Connect Zoom'}}
+      const out=await zoomInvoke({action:'save',client_id:clientId,client_secret:clientSecret});
+      zoomState.configured=!!out.configured;zoomState.connected=!!out.connected;
+      if(authorizeAfter&&!zoomState.connected){await authorizeZoom(button);return}
+      renderZoomIntegration();
+      alert('Zoom OAuth credentials saved.');
+    }catch(e){alert(`Zoom setup failed: ${e?.message||e}`);if(button){button.disabled=false;button.textContent=old||'Save'}}
+  };
+
+  window.authorizeZoom=async function(button){
+    const old=button?.textContent;if(button){button.disabled=true;button.textContent='Opening Zoom…'}
+    try{
+      const {data,error}=await sb.functions.invoke('zoom-oauth-start',{body:{}});
+      if(error||data?.error)throw new Error(data?.error||error?.message||'Could not start Zoom authorization.');
+      if(!data?.auth_url)throw new Error('Zoom authorization URL was not returned.');
+      window.location.href=data.auth_url;
+    }catch(e){alert(`Could not open Zoom authorization: ${e?.message||e}`);if(button){button.disabled=false;button.textContent=old||'Authorize with Zoom'}}
   };
 
   window.testZoomIntegration=async function(button){
     const old=button?.textContent;if(button){button.disabled=true;button.textContent='Testing…'}
-    try{const out=await zoomInvoke({action:'test'});alert(`Zoom connection works for ${out.host_email||zoomState.hostEmail}.`)}
+    try{const out=await zoomInvoke({action:'test'});alert(`Zoom connection works${out.host_email?' for '+out.host_email:''}.`)}
     catch(e){alert(`Zoom test failed: ${e?.message||e}`)}
     finally{if(button){button.disabled=false;button.textContent=old||'Test connection'}}
   };
 
   window.disconnectZoomIntegration=async function(){
     if(!confirm('Disconnect Zoom from KP HQ? Existing consultation links will stay saved.'))return;
-    try{await zoomInvoke({action:'disconnect'});zoomState.configured=false;zoomState.hostEmail=null;renderZoomIntegration()}
+    try{await zoomInvoke({action:'disconnect'});zoomState.connected=false;zoomState.hostEmail=null;renderZoomIntegration()}
     catch(e){alert(`Could not disconnect Zoom: ${e?.message||e}`)}
   };
 
@@ -99,7 +121,7 @@
     const input=document.getElementById('consultLink');if(!input)return;
     const label=input.closest('label');if(!label||document.getElementById('zoomConsultOption'))return;
     const wrap=document.createElement('div');wrap.id='zoomConsultOption';wrap.className='zoom-consult-option';
-    if(zoomState.configured){
+    if(zoomState.connected){
       wrap.innerHTML=`<label class="checkline zoom-check"><input id="consultUseZoom" type="checkbox" checked> <span><strong>Create Zoom meeting automatically</strong><small>KP HQ will create the meeting, save the join link, add it to Google Calendar, and include it in the confirmation email.</small></span></label>`;
       label.before(wrap);
       const box=document.getElementById('consultUseZoom');
@@ -153,12 +175,11 @@
     return data||{};
   }
 
-  // Replace the base consultation creator so Zoom metadata is saved with the consultation.
   window.createConsultation=async function(button){
     const clientId=val('consultClient'),projectId=val('consultProject')||null,title=val('consultTitle').trim(),date=val('consultDate'),time=val('consultTime')||null,duration=+val('consultDuration')||30,notes=val('consultNotes').trim(),sendEmail=!!document.getElementById('consultSendEmail')?.checked;
     if(!clientId||!title||!date||!time)return alert('Choose a client and add a title, date, and time.');
     const client=clientFor(clientId);if(!client)return alert('Choose a valid client.');
-    const useZoom=!!document.getElementById('consultUseZoom')?.checked&&zoomState.configured;
+    const useZoom=!!document.getElementById('consultUseZoom')?.checked&&zoomState.connected;
     let meeting=val('consultLink').trim(),zoom=null,event=null,consult=null,calendarSynced=false,emailSent=false,emailError='';
     const old=button?.textContent;if(button){button.disabled=true;button.textContent=useZoom?'Creating Zoom meeting…':'Creating…'}
     try{
@@ -190,6 +211,17 @@
       if(button){button.disabled=false;button.textContent=old||'Create Consultation'}
     }
   };
+
+  const params=new URLSearchParams(location.search);
+  if(params.get('zoom')){
+    const result=params.get('zoom'),reason=params.get('reason');
+    history.replaceState({},'',location.pathname+location.hash);
+    setTimeout(async()=>{
+      await refreshZoomIntegration(false);
+      if(result==='connected')alert('Zoom is connected. KP HQ can now create consultation meetings automatically.');
+      else if(result==='error')alert(`Zoom connection failed${reason?': '+reason:''}.`);
+    },700);
+  }
 
   setTimeout(()=>refreshZoomIntegration(false),900);
 })();
