@@ -1,0 +1,2 @@
+// Repaint the current KP HQ view once the enhancement layer is loaded.
+setTimeout(()=>{try{if(document.getElementById('view')&&typeof page==='function')page()}catch(e){console.warn('KP HQ enhancement repaint skipped',e)}},700);
