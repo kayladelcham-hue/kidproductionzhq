@@ -1,0 +1,12 @@
+/* Small KP HQ mobile spacing + finance projected-revenue polish. */
+.finance-pipeline-card{margin-top:14px}
+
+@media(max-width:850px){
+  .shell main{padding-left:16px!important;padding-right:16px!important}
+  #view{width:100%;max-width:100%;min-width:0}
+  .pipeline-card,.metrics,.list,.sectionhead{max-width:100%}
+}
+
+@media(max-width:390px){
+  .shell main{padding-left:16px!important;padding-right:16px!important}
+}
