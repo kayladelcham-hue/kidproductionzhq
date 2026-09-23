@@ -103,7 +103,15 @@
   window.dashboard=function(v){
     baseDashboard(v);
     const existing=v.querySelector('.pipeline-card');
-    if(existing) existing.outerHTML=pipelineCardHTML(false);
+    if(existing){
+      existing.outerHTML=pipelineCardHTML(false);
+      return;
+    }
+
+    /* Partnership Pulse is the primary relationship snapshot on Overview, so
+       keep it directly under the KPI cards and place projected revenue after it. */
+    const partnerships=v.querySelector('.dash-partnerships');
+    if(partnerships) partnerships.insertAdjacentHTML('afterend',pipelineCardHTML(false));
     else v.querySelector('.metrics')?.insertAdjacentHTML('afterend',pipelineCardHTML(false));
   };
 
