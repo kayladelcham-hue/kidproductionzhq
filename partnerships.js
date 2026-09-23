@@ -111,8 +111,19 @@
       <div class="pattention">
         ${attn.length ? attn.map(x => `
           <button class="pattention-card" onclick="openPartnershipEditor('${x.id}')">
-            <div><span>${esc(x.category||'Partnership')}</span><strong>${esc(x.business)}</strong></div>
-            <div><span class="pstatus ${statusClass(x.status)}">${esc(x.status)}</span><small>${esc(x.next_action||'Review opportunity')}</small></div>
+            <div class="pattention-main">
+              <span class="pattention-category">${esc(x.category||'Partnership')}</span>
+              <strong>${esc(x.business)}</strong>
+              <div class="pattention-meta">
+                <span class="pstatus ${statusClass(x.status)}">${esc(x.status)}</span>
+                ${x.priority==='High'?'<span class="ppriority">High priority</span>':''}
+              </div>
+            </div>
+            <div class="pattention-action">
+              <span class="pattention-label">Next action</span>
+              <small>${esc(x.next_action||'Review opportunity')}</small>
+              <span class="pattention-open">Open opportunity <b>›</b></span>
+            </div>
           </button>`).join('') : '<div class="empty">Nothing urgent right now.</div>'}
       </div>
 
