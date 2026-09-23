@@ -1,0 +1,13 @@
+.pat-manual-card{cursor:pointer}
+.pmanualbadge{display:inline-flex!important;width:max-content;background:#f1f5ff;color:#334e9a!important;-webkit-text-fill-color:#334e9a!important;border-radius:999px;padding:6px 9px;font-size:11px!important;font-weight:800}
+.pattention-tools{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.pattention-tool{appearance:none;-webkit-appearance:none;border:1px solid #dbe1e8;background:#fff;border-radius:10px;padding:8px 10px;font:inherit;font-size:11px;font-weight:800;color:#334155!important;-webkit-text-fill-color:#334155!important;cursor:pointer}
+.pattention-tool.handled{background:#f8fafc}
+.pattention-tool:hover{background:#f1f5f9}
+.pattention-help{display:block!important;margin-top:6px;color:#64748b!important;-webkit-text-fill-color:#64748b!important;font-size:11px!important;line-height:1.35}
+.dashp-cardhead>div{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.dashp-refresh{appearance:none;-webkit-appearance:none;border:1px solid #dbe1e8;background:#fff;border-radius:9px;padding:7px 9px;font:inherit;font-size:11px;font-weight:800;color:#334155!important;-webkit-text-fill-color:#334155!important;cursor:pointer}
+.dashp-manual-row{cursor:pointer}
+.dashp-handled{appearance:none;-webkit-appearance:none;border:1px solid #dbe1e8;background:#fff;border-radius:9px;padding:7px 9px;font:inherit;font-size:11px;font-weight:800;color:#475569!important;-webkit-text-fill-color:#475569!important;cursor:pointer}
+.dashp-handled:hover,.dashp-refresh:hover{background:#f8fafc}
+@media(max-width:600px){.pattention-tools{width:100%}.pattention-tool{flex:1;min-height:40px}.dashp-cardhead{align-items:center}.dashp-rowright{width:100%}.dashp-handled{margin-left:auto}}
