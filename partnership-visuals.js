@@ -46,6 +46,18 @@
   function booked(){ return count('Booked / Active'); }
   function highPriority(){ return rows().filter(x=>x.priority==='High' && !['Rejected — Not Now','Closed Lost'].includes(x.status)).length; }
 
+  function categoryParent(value){
+    const raw=(value||'Other').trim()||'Other';
+    const key=raw.toLowerCase();
+    if(
+      key.includes('hotel') || key.includes('resort') || key.includes('cabin') ||
+      key.includes('cruise') || key.includes('vacation rental') ||
+      key.includes('property mgmt') || key.includes('property management') ||
+      key.includes('hospitality') || key.includes('restaurant') || key.includes('food')
+    ) return 'Hospitality';
+    return raw;
+  }
+
   function dashboardTabs(){
     return `<div class="pv-topbar">
       <div class="pv-tabs" role="tablist" aria-label="Partnership views">
@@ -90,7 +102,7 @@
 
   function categoryData(){
     const map={};
-    rows().forEach(x=>{ const k=(x.category||'Other').trim()||'Other'; map[k]=(map[k]||0)+1; });
+    rows().forEach(x=>{ const k=categoryParent(x.category); map[k]=(map[k]||0)+1; });
     return Object.entries(map).sort((a,b)=>b[1]-a[1]);
   }
 
@@ -178,8 +190,9 @@
   function categoryPerformance(){
     const map={};
     rows().forEach(x=>{
-      const category=(x.category||'Other').trim()||'Other';
-      if(!map[category]) map[category]={category,sent:0,responses:0,active:0,booked:0,awaiting:0,rejected:0,failed:0};
+      const raw=(x.category||'Other').trim()||'Other';
+      const category=categoryParent(raw);
+      if(!map[category]) map[category]={category,sent:0,responses:0,active:0,booked:0,awaiting:0,rejected:0,failed:0,subtypes:{}};
       const s=map[category];
       s.sent++;
       if(RESPONDED.has(x.status)) s.responses++;
@@ -188,6 +201,15 @@
       if(x.status==='Awaiting Reply') s.awaiting++;
       if(['Rejected — Not Now','Closed Lost'].includes(x.status)) s.rejected++;
       if(x.status==='Delivery Failed') s.failed++;
+
+      if(category==='Hospitality'){
+        if(!s.subtypes[raw]) s.subtypes[raw]={name:raw,sent:0,responses:0,active:0,booked:0};
+        const t=s.subtypes[raw];
+        t.sent++;
+        if(RESPONDED.has(x.status)) t.responses++;
+        if(ACTIVE.has(x.status)) t.active++;
+        if(x.status==='Booked / Active') t.booked++;
+      }
     });
     return Object.values(map).map(s=>({
       ...s,
@@ -196,7 +218,8 @@
       activeRate:pct(s.active,s.sent),
       bookedRate:pct(s.booked,s.sent),
       rejectRate:pct(s.rejected,s.sent),
-      failureRate:pct(s.failed,s.sent)
+      failureRate:pct(s.failed,s.sent),
+      subtypeSummary:Object.values(s.subtypes||{}).sort((a,b)=>b.sent-a.sent).map(t=>`${t.name}: ${t.sent} sent · ${pct(t.responses,t.sent)}% reply`).join(' · ')
     })).sort((a,b)=>b.sent-a.sent||b.responseRate-a.responseRate);
   }
 
@@ -245,7 +268,7 @@
         </div>
       </div>
       <div class="pv-panel pv-analytics-wide pv-category-performance">
-        <div class="pv-panelhead"><div><span class="pv-kicker">CATEGORY PERFORMANCE</span><h3>Which lanes are actually working</h3><span class="pv-subtle">Compare response quality and pipeline movement, not just volume.</span></div></div>
+        <div class="pv-panelhead"><div><span class="pv-kicker">CATEGORY PERFORMANCE</span><h3>Which lanes are actually working</h3><span class="pv-subtle">Hospitality is grouped into one parent lane, with its subtypes shown underneath so the signal is easier to read.</span></div></div>
         <div class="pv-leadergrid">
           <div><span>Best response rate</span><strong>${responseLeader?esc(responseLeader.category):'—'}</strong><b>${responseLeader?responseLeader.responseRate+'%':'—'}</b></div>
           <div><span>Best response → active</span><strong>${activeLeader?esc(activeLeader.category):'—'}</strong><b>${activeLeader?activeLeader.responseToActive+'%':'—'}</b></div>
@@ -255,7 +278,7 @@
         <div class="pv-cat-table">
           <div class="pv-cat-head"><span>Category</span><span>Sent</span><span>Replies</span><span>Reply %</span><span>Active</span><span>Reply → active</span><span>Booked</span><span>Awaiting</span></div>
           ${stats.length?stats.map(s=>`<div class="pv-cat-row">
-            <span class="pv-cat-name"><strong>${esc(s.category)}</strong><small>${s.failureRate}% failed · ${s.rejectRate}% rejected/lost</small></span>
+            <span class="pv-cat-name"><strong>${esc(s.category)}</strong>${s.subtypeSummary?`<small class="pv-cat-subtypes">${esc(s.subtypeSummary)}</small>`:''}<small class="pv-cat-quality">${s.failureRate}% failed · ${s.rejectRate}% rejected/lost</small></span>
             <span data-label="Sent">${s.sent}</span><span data-label="Replies">${s.responses}</span><span data-label="Reply %"><strong>${s.responseRate}%</strong></span><span data-label="Active">${s.active}</span><span data-label="Reply → active"><strong>${s.responseToActive}%</strong></span><span data-label="Booked">${s.booked}</span><span data-label="Awaiting">${s.awaiting}</span>
           </div>`).join(''):'<div class="pv-empty">No category performance data yet.</div>'}
         </div>
