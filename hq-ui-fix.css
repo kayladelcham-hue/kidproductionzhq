@@ -2,11 +2,14 @@
 .finance-pipeline-card{margin-top:14px}
 
 @media(max-width:850px){
-  /* Safari was allowing the document to become wider than the viewport, which
-     let the whole HQ canvas pan sideways and clip the left side of the page. */
+  /* Keep the mobile canvas exactly viewport width. */
   html,body,#app,.shell{width:100%!important;max-width:100%!important;min-width:0!important;overflow-x:clip!important}
-  body{overscroll-behavior-x:none!important}
-  .shell main{width:100%!important;max-width:100%!important;min-width:0!important;margin:0!important;padding-left:16px!important;padding-right:16px!important;overflow-x:clip!important;box-sizing:border-box!important}
+  body{overscroll-behavior-x:none!important;background:var(--xp-bg)!important}
+
+  /* On mobile, remove the desktop radial shell glow. The 16px main padding was
+     exposing that glow only on the right edge, which looked like a blank gutter. */
+  .shell{background:var(--xp-bg)!important}
+  .shell main{width:100%!important;max-width:100%!important;min-width:0!important;margin:0!important;padding-left:16px!important;padding-right:16px!important;overflow-x:clip!important;box-sizing:border-box!important;background:var(--xp-bg)!important}
   #view{width:100%!important;max-width:100%!important;min-width:0!important;overflow-x:clip!important}
   #view>*{max-width:100%!important;min-width:0!important;box-sizing:border-box!important}
 
