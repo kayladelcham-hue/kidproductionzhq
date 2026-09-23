@@ -175,13 +175,57 @@
     return weeks;
   }
 
+  function categoryPerformance(){
+    const map={};
+    rows().forEach(x=>{
+      const category=(x.category||'Other').trim()||'Other';
+      if(!map[category]) map[category]={category,sent:0,responses:0,active:0,booked:0,awaiting:0,rejected:0,failed:0};
+      const s=map[category];
+      s.sent++;
+      if(RESPONDED.has(x.status)) s.responses++;
+      if(ACTIVE.has(x.status)) s.active++;
+      if(x.status==='Booked / Active') s.booked++;
+      if(x.status==='Awaiting Reply') s.awaiting++;
+      if(['Rejected — Not Now','Closed Lost'].includes(x.status)) s.rejected++;
+      if(x.status==='Delivery Failed') s.failed++;
+    });
+    return Object.values(map).map(s=>({
+      ...s,
+      responseRate:pct(s.responses,s.sent),
+      responseToActive:pct(s.active,s.responses),
+      activeRate:pct(s.active,s.sent),
+      bookedRate:pct(s.booked,s.sent),
+      rejectRate:pct(s.rejected,s.sent),
+      failureRate:pct(s.failed,s.sent)
+    })).sort((a,b)=>b.sent-a.sent||b.responseRate-a.responseRate);
+  }
+
+  function followupAge(){
+    const now=new Date();
+    const out={fresh:0,follow:0,stale:0,unknown:0};
+    rows().filter(x=>x.status==='Awaiting Reply').forEach(x=>{
+      const d=safeDate(x.first_outreach||x.created_at||x.last_activity);
+      if(!d){out.unknown++;return;}
+      const days=Math.max(0,Math.floor((now-d)/86400000));
+      if(days<=2) out.fresh++;
+      else if(days<=6) out.follow++;
+      else out.stale++;
+    });
+    return out;
+  }
+
   function analytics(){
     const total=rows().length;
     const categories=categoryData().slice(0,8);
     const catMax=Math.max(...categories.map(x=>x[1]),1);
     const weeks=weekBuckets();
     const weekMax=Math.max(...weeks.map(x=>x.value),1);
-    const wins=booked()+count('Active / Onboarding')+count('Affiliate Approved');
+    const stats=categoryPerformance();
+    const responseLeader=[...stats].filter(x=>x.sent>=5&&x.responses>0).sort((a,b)=>b.responseRate-a.responseRate||b.responses-a.responses)[0];
+    const activeLeader=[...stats].filter(x=>x.responses>=3).sort((a,b)=>b.responseToActive-a.responseToActive||b.active-a.active)[0];
+    const pipelineLeader=[...stats].sort((a,b)=>b.active-a.active||b.sent-a.sent)[0];
+    const bookedLeader=[...stats].filter(x=>x.booked>0).sort((a,b)=>b.booked-a.booked||b.bookedRate-a.bookedRate)[0];
+    const age=followupAge();
     return `<div class="pv-analytics-grid">
       <div class="pv-panel pv-analytics-wide">
         <div class="pv-panelhead"><div><span class="pv-kicker">ACTIVITY</span><h3>Outreach volume — last 6 weeks</h3></div></div>
@@ -196,8 +240,41 @@
         <div class="pv-rategrid">
           <div><strong>${pct(responded(),total)}%</strong><span>Response</span></div>
           <div><strong>${pct(active(),Math.max(responded(),1))}%</strong><span>Response → active</span></div>
-          <div><strong>${pct(wins,Math.max(active(),1))}%</strong><span>Active → win</span></div>
+          <div><strong>${pct(booked(),Math.max(active(),1))}%</strong><span>Active → booked</span></div>
           <div><strong>${pct(count('Delivery Failed'),Math.max(total,1))}%</strong><span>Delivery failure</span></div>
+        </div>
+      </div>
+      <div class="pv-panel pv-analytics-wide pv-category-performance">
+        <div class="pv-panelhead"><div><span class="pv-kicker">CATEGORY PERFORMANCE</span><h3>Which lanes are actually working</h3><span class="pv-subtle">Compare response quality and pipeline movement, not just volume.</span></div></div>
+        <div class="pv-leadergrid">
+          <div><span>Best response rate</span><strong>${responseLeader?esc(responseLeader.category):'—'}</strong><b>${responseLeader?responseLeader.responseRate+'%':'—'}</b></div>
+          <div><span>Best response → active</span><strong>${activeLeader?esc(activeLeader.category):'—'}</strong><b>${activeLeader?activeLeader.responseToActive+'%':'—'}</b></div>
+          <div><span>Largest active pipeline</span><strong>${pipelineLeader?esc(pipelineLeader.category):'—'}</strong><b>${pipelineLeader?pipelineLeader.active:'—'}</b></div>
+          <div><span>Most booked wins</span><strong>${bookedLeader?esc(bookedLeader.category):'—'}</strong><b>${bookedLeader?bookedLeader.booked:'—'}</b></div>
+        </div>
+        <div class="pv-cat-table">
+          <div class="pv-cat-head"><span>Category</span><span>Sent</span><span>Replies</span><span>Reply %</span><span>Active</span><span>Reply → active</span><span>Booked</span><span>Awaiting</span></div>
+          ${stats.length?stats.map(s=>`<div class="pv-cat-row">
+            <span class="pv-cat-name"><strong>${esc(s.category)}</strong><small>${s.failureRate}% failed · ${s.rejectRate}% rejected/lost</small></span>
+            <span data-label="Sent">${s.sent}</span><span data-label="Replies">${s.responses}</span><span data-label="Reply %"><strong>${s.responseRate}%</strong></span><span data-label="Active">${s.active}</span><span data-label="Reply → active"><strong>${s.responseToActive}%</strong></span><span data-label="Booked">${s.booked}</span><span data-label="Awaiting">${s.awaiting}</span>
+          </div>`).join(''):'<div class="pv-empty">No category performance data yet.</div>'}
+        </div>
+      </div>
+      <div class="pv-panel">
+        <div class="pv-panelhead"><div><span class="pv-kicker">FOLLOW-UP HEALTH</span><h3>Awaiting reply by age</h3></div></div>
+        <div class="pv-aging-grid">
+          <div><strong>${age.fresh}</strong><span>0–2 days</span><small>Fresh outreach</small></div>
+          <div><strong>${age.follow}</strong><span>3–6 days</span><small>Follow-up window</small></div>
+          <div><strong>${age.stale}</strong><span>7+ days</span><small>Needs another touch</small></div>
+          ${age.unknown?`<div><strong>${age.unknown}</strong><span>No date</span><small>Missing outreach date</small></div>`:''}
+        </div>
+      </div>
+      <div class="pv-panel">
+        <div class="pv-panelhead"><div><span class="pv-kicker">DEFINITIONS</span><h3>How KP HQ counts conversion</h3></div></div>
+        <div class="pv-definition-list">
+          <div><strong>Response</strong><span>Meaningful human reply or an opportunity that moved beyond awaiting/auto-reply.</span></div>
+          <div><strong>Active / warm</strong><span>Warm, review, referred, proposal, invoice, consultation, onboarding or booked.</span></div>
+          <div><strong>Booked</strong><span>Only <b>Booked / Active</b> counts as a win, keeping close rate clean.</span></div>
         </div>
       </div>
     </div>`;
