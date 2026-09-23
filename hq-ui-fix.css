@@ -1,12 +1,55 @@
-/* Small KP HQ mobile spacing + finance projected-revenue polish. */
+/* KP HQ mobile containment + overview polish. */
 .finance-pipeline-card{margin-top:14px}
 
 @media(max-width:850px){
-  .shell main{padding-left:16px!important;padding-right:16px!important}
-  #view{width:100%;max-width:100%;min-width:0}
-  .pipeline-card,.metrics,.list,.sectionhead{max-width:100%}
+  /* Safari was allowing the document to become wider than the viewport, which
+     let the whole HQ canvas pan sideways and clip the left side of the page. */
+  html,body,#app,.shell{width:100%!important;max-width:100%!important;min-width:0!important;overflow-x:clip!important}
+  body{overscroll-behavior-x:none!important}
+  .shell main{width:100%!important;max-width:100%!important;min-width:0!important;margin:0!important;padding-left:16px!important;padding-right:16px!important;overflow-x:clip!important;box-sizing:border-box!important}
+  #view{width:100%!important;max-width:100%!important;min-width:0!important;overflow-x:clip!important}
+  #view>*{max-width:100%!important;min-width:0!important;box-sizing:border-box!important}
+
+  .metrics,.list,.sectionhead,.pipeline-card,.dash-partnerships,.dashp-card{width:100%!important;max-width:100%!important;min-width:0!important}
+  .metrics{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .metric{width:100%!important;min-width:0!important;overflow:hidden!important}
+  .metric span,.metric strong{max-width:100%!important;overflow-wrap:anywhere!important}
+
+  .pipeline-card{overflow:hidden!important}
+  .pipeline-head{width:100%!important;max-width:100%!important;min-width:0!important}
+  .pipeline-head>div{min-width:0!important;max-width:100%!important}
+  .pipeline-head .tag{align-self:flex-start!important;max-width:100%!important;white-space:normal!important}
+  .pipeline-total{max-width:100%!important;overflow-wrap:anywhere!important}
+  .pipeline-deals{width:100%!important;max-width:100%!important;min-width:0!important}
+  .pipeline-deal{width:100%!important;max-width:100%!important;min-width:0!important;display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:10px!important;align-items:start!important}
+  .pipeline-deal>div{min-width:0!important;max-width:100%!important}
+  .pipeline-deal>strong{max-width:42vw!important;white-space:nowrap!important;text-align:right!important}
+  .pipeline-deal strong,.pipeline-deal span{overflow-wrap:anywhere!important;word-break:break-word!important}
+
+  /* Keep the partnership summary visible and fully contained on the overview. */
+  .dash-partnerships{margin-left:0!important;margin-right:0!important;overflow:hidden!important}
+  .dashp-head{width:100%!important;max-width:100%!important;min-width:0!important;flex-direction:column!important;align-items:stretch!important}
+  .dashp-head>div{min-width:0!important;max-width:100%!important}
+  .dashp-view{width:100%!important;white-space:normal!important}
+  .dashp-metrics{width:100%!important;max-width:100%!important;min-width:0!important;grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .dashp-metrics>div{min-width:0!important;overflow:hidden!important}
+  .dashp-card,.dashp-row,.dashp-business,.dashp-rowright{min-width:0!important;max-width:100%!important}
+  .dashp-row{width:100%!important;grid-template-columns:1fr!important}
+  .dashp-rowright{justify-content:flex-start!important}
+  .dashp-business strong,.dashp-business small{overflow-wrap:anywhere!important;word-break:break-word!important}
+
+  .row,.row>div,.rowactions{max-width:100%!important;min-width:0!important}
+  .sectionhead{margin-left:0!important;margin-right:0!important}
+}
+
+@supports not (overflow:clip){
+  @media(max-width:850px){
+    html,body,#app,.shell,.shell main,#view{overflow-x:hidden!important}
+  }
 }
 
 @media(max-width:390px){
-  .shell main{padding-left:16px!important;padding-right:16px!important}
+  .shell main{padding-left:14px!important;padding-right:14px!important}
+  .pipeline-deal{grid-template-columns:1fr!important}
+  .pipeline-deal>strong{max-width:100%!important;text-align:left!important}
 }
