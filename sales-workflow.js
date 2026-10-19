@@ -78,7 +78,12 @@
     if(window.refreshGoogleIntegration)await refreshGoogleIntegration(false);
     if(!window.KPGoogle?.connected)throw new Error('Gmail is not connected. Go to Resources → Google Workspace and connect it first.');
     const {data,error}=await sb.functions.invoke('google-gmail',{body:{action:'send',to,subject,html,text}});
-    if(error||data?.error)throw new Error(data?.error||error?.message||'Gmail could not send the message.');
+    if(error||data?.error){
+      const detail=window.kpGoogleErrorMessage
+        ?await window.kpGoogleErrorMessage(error,data,'Gmail could not send the message.')
+        :(data?.error||error?.message||'Gmail could not send the message.');
+      throw new Error(detail);
+    }
     return data||{};
   }
 
