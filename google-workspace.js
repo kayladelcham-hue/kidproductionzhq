@@ -4,6 +4,25 @@
   const state={configured:false,clientId:null,connected:false,email:null,loading:false};
   window.KPGoogle=state;
 
+  // Surface the actual JSON returned by an Edge Function instead of Supabase's
+  // generic "non-2xx" error, including a recovery path for expired Google OAuth.
+  window.kpGoogleErrorMessage=async function(error,data,fallback='Google request failed.'){
+    let message=data?.error||data?.message||error?.message||fallback;
+    try{
+      const response=error?.context;
+      if(response&&typeof response.clone==='function'){
+        const details=await response.clone().json();
+        message=details?.error_description||details?.error||details?.message||message;
+      }
+    }catch(_e){}
+    message=String(message||fallback);
+    if(/invalid_grant|token.*(?:expired|revoked)|(?:expired|revoked).*token|token refresh failed|could not refresh google access/i.test(message))
+      return 'Your Google authorization has expired. Open Resources → Google Workspace, choose Reconnect Google, and approve access again.';
+    if(/non-2xx status code/i.test(message))
+      return fallback+' Please check your Google connection under Resources → Google Workspace.';
+    return message;
+  };
+
   function escAttr(s){return esc(s||'')}
   function statusText(){
     if(state.connected) return `<span class="tag">Connected • ${esc(state.email||'Google')}</span>`;
@@ -42,7 +61,7 @@
   window.connectGoogleWorkspace=async function(){
     const btn=document.getElementById('connectGoogleBtn');if(btn){btn.disabled=true;btn.textContent='Opening Google…'}
     const {data,error}=await sb.functions.invoke('google-oauth-start',{body:{}});
-    if(error||data?.error){if(btn){btn.disabled=false;btn.textContent='Connect Gmail'}return alert(data?.error||error?.message||'Could not start Google connection.');}
+    if(error||data?.error){if(btn){btn.disabled=false;btn.textContent=state.connected?'Reconnect Google':'Connect Gmail'}return alert(await window.kpGoogleErrorMessage(error,data,'Could not start Google connection.'));}
     window.location.href=data.auth_url;
   };
 
@@ -59,7 +78,7 @@
     return `<div class="card" style="margin-top:22px;padding:24px">
       <div class="sectionhead" style="margin:0 0 18px"><div><div class="eyebrow">GOOGLE WORKSPACE</div><h2 style="margin-top:5px">Gmail integration</h2><p>Send KP HQ invoices directly from your KidProductionz Gmail after reviewing them.</p></div>${statusText()}</div>
       ${state.connected?`
-        <div class="integration"><div><strong>${esc(state.email)}</strong><p>Gmail is connected. Invoice emails will be sent from this account, while Stripe hosts the secure payment page.</p></div><button class="secondary" onclick="disconnectGoogleWorkspace()">Disconnect</button></div>
+        <div class="integration"><div><strong>${esc(state.email)}</strong><p>Gmail and Google Calendar are linked to this account. If sending or Google Meet creation stops working, reconnect Google to renew authorization.</p></div><div class="actions"><button id="connectGoogleBtn" class="secondary" onclick="connectGoogleWorkspace()">Reconnect Google</button><button class="secondary" onclick="disconnectGoogleWorkspace()">Disconnect</button></div></div>
       `:`
         <div style="display:grid;gap:18px">
           <div class="integration"><div><strong>1. Create a Google OAuth web app</strong><p>In Google Cloud Console, enable the Gmail API and create OAuth 2.0 credentials for a <b>Web application</b>. Add the origin and redirect URI below exactly.</p></div><a class="secondary linkbtn" target="_blank" href="https://console.cloud.google.com/apis/credentials">Google Cloud ↗</a></div>
